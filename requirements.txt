@@ -1,0 +1,19 @@
+# Core Deep Learning & Computer Vision
+torch
+torchvision
+torchaudio
+opencv-python
+ultralytics
+
+# Data Processing & Visualization
+numpy
+pandas
+matplotlib
+pillow
+scikit-learn
+
+# Backend & Web Server
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
