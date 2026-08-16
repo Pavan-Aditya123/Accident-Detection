@@ -657,9 +657,6 @@ class VideoProcessor:
             else:
                 # Reset counter if no accident detected in current frame
                 consecutive_accident_count = 0
-                # Keep displaying previous severity info for a few frames for visibility
-                if consecutive_accident_count == 0 and frame_count % 10 == 0:
-                    current_severity_info = None
             
             # Draw detections on enhanced frame with severity info
             drawing_start = time.time()
@@ -710,6 +707,16 @@ class VideoProcessor:
         print(f"[+] Average FPS: {avg_fps:.2f}")
         print(f"[+] Average inference time per frame: {avg_frame_time:.2f}ms")
         print(f"[+] Output saved to: {output_path}")
+
+        # Build summary dict for callers (e.g. backend API)
+        self._last_run_stats = {
+            "frames_processed":     frame_count,
+            "possible_accidents":   possible_accident_frames,
+            "confirmed_accidents":  confirmed_accidents,
+            "avg_fps":              round(avg_fps, 2),
+            "avg_ms_per_frame":     round(avg_frame_time, 2),
+            "last_severity":        current_severity_info,
+        }
         
         # Profiling report
         print(f"\n{'='*70}")

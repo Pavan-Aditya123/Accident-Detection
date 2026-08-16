@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Smart Accident Detection System</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <span class="header-icon">🚨</span>
+      <h1>AI Smart Accident Detection System</h1>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Upload Card -->
+    <section class="card" id="upload-card">
+      <h2>Upload Video</h2>
+      <p class="card-sub">Supported formats: <strong>.mp4 &nbsp;.mov &nbsp;.avi</strong></p>
+
+      <div class="drop-zone" id="drop-zone">
+        <span class="drop-icon">📁</span>
+        <p>Drag &amp; drop a video here, or click to browse</p>
+        <input type="file" id="file-input" accept=".mp4,.mov,.avi" />
+      </div>
+
+      <div id="file-info" class="file-info hidden">
+        <span class="file-name-icon">🎬</span>
+        <span id="file-name-label"></span>
+        <button class="btn-clear" id="btn-clear" title="Remove file">✕</button>
+      </div>
+
+      <button class="btn-primary" id="btn-upload" disabled>
+        Run Detection
+      </button>
+    </section>
+
+    <!-- Status Card -->
+    <section class="card hidden" id="status-card">
+      <h2>Processing Status</h2>
+      <div class="status-row">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Waiting…</span>
+      </div>
+      <div class="progress-bar-wrap hidden" id="progress-wrap">
+        <div class="progress-bar"></div>
+      </div>
+    </section>
+
+    <!-- Results Card -->
+    <section class="card hidden" id="results-card">
+      <h2>Detection Results</h2>
+
+      <!-- Accident status banner -->
+      <div class="accident-banner" id="accident-banner">
+        <span id="banner-icon"></span>
+        <span id="banner-text"></span>
+      </div>
+
+      <!-- Severity panel (shown only when an accident is confirmed) -->
+      <div class="severity-panel hidden" id="severity-panel">
+        <h3>Severity Assessment</h3>
+        <div class="sev-grid">
+          <div class="sev-item">
+            <span class="sev-label">Accident Type</span>
+            <span class="sev-value" id="sev-class"></span>
+          </div>
+          <div class="sev-item">
+            <span class="sev-label">Impact Level</span>
+            <span class="sev-value" id="sev-impact"></span>
+          </div>
+          <div class="sev-item">
+            <span class="sev-label">Severity</span>
+            <span class="sev-value badge-sev" id="sev-level"></span>
+          </div>
+          <div class="sev-item">
+            <span class="sev-label">Priority</span>
+            <span class="sev-value badge-pri" id="sev-priority"></span>
+          </div>
+        </div>
+        <p class="sev-reason" id="sev-reason"></p>
+      </div>
+
+      <!-- Detection stats -->
+      <div class="stats-row" id="stats-row">
+        <div class="stat-box">
+          <span class="stat-val" id="stat-frames">—</span>
+          <span class="stat-label">Frames</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-val" id="stat-possible">—</span>
+          <span class="stat-label">Possible Events</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-val" id="stat-confirmed">—</span>
+          <span class="stat-label">Confirmed</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-val" id="stat-fps">—</span>
+          <span class="stat-label">Avg FPS</span>
+        </div>
+      </div>
+
+      <!-- File details -->
+      <div class="result-grid">
+        <div class="result-item">
+          <span class="result-label">Input File</span>
+          <span class="result-value" id="res-input"></span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Output Path</span>
+          <span class="result-value mono" id="res-output"></span>
+        </div>
+      </div>
+
+      <!-- Video player -->
+      <div class="video-section hidden" id="video-section">
+        <h3>Processed Output Video</h3>
+        <video id="output-video" controls playsinline>
+          Your browser does not support the video element.
+        </video>
+      </div>
+
+      <button class="btn-secondary" id="btn-reset">Process Another Video</button>
+    </section>
+
+    <!-- Error Card -->
+    <section class="card card-error hidden" id="error-card">
+      <h2>⚠ Error</h2>
+      <p id="error-message"></p>
+      <button class="btn-secondary" id="btn-error-reset">Try Again</button>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>AI Smart Accident Detection System &nbsp;·&nbsp; Zero-DCE + YOLO26 + Severity Pipeline</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
