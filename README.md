@@ -1,122 +1,178 @@
-# AI-Based Smart Accident Detection and Emergency Response System
+# AI Smart Accident Detection System
 
-A comprehensive deep learning framework designed to monitor CCTV video feeds in real-time, detect vehicular accidents, handle low-light or adverse weather environmental conditions, assess accident severity, and instantly trigger automated emergency response alerts.
-
----
-
-## 1. Problem Statement
-
-Road traffic accidents account for millions of injuries and fatalities worldwide each year. A significant factor contributing to road fatalities is **delayed emergency response time** ("Golden Hour" delay). Conventional accident monitoring relies on:
-- Manual surveillance by traffic personnel watching multiple screen feeds.
-- Eyewitness phone calls to emergency hotlines.
-- Lack of precise real-time contextual information regarding accident severity, exact location, and medical requirements.
-
-This project aims to bridge these delays by constructing an automated, AI-powered system capable of real-time monitoring, instantaneous detection, severity prediction, and automated dispatch notification.
+An AI-based accident detection framework that combines Zero-DCE low-light enhancement with YOLO26 accident detection and rule-based severity estimation to improve night-time road accident analysis.
 
 ---
 
-## 2. Research Gaps
+# Features
 
-Existing traffic surveillance systems suffer from several key limitations:
-1. **Low-Light & Environmental Vulnerability**: Standard object detection models experience significant accuracy degradation under night-time conditions, fog, rain, or glare.
-2. **High False Positive Rates**: Generic motion-based algorithms misidentify sudden braking or vehicle stops as accidents.
-3. **Lack of Severity & Impact Categorization**: Most current solutions only perform binary detection (accident / no accident) without assessing collision severity or vehicle count.
-4. **Isolated Alert Systems**: Absence of direct, automated integration with emergency medical services, police dispatch, or traffic management infrastructure.
-
----
-
-## 3. Proposed Solution
-
-Our proposed system integrates a multi-stage AI pipeline:
-
-- **Stream Ingestion**: Accepts live RTSP CCTV feeds or pre-recorded video inputs.
-- **Pre-processing & Low-Light Enhancement**: Uses deep learning enhancement networks to enhance low-light/poor-visibility video frames prior to inference.
-- **Accident Detection Engine**: Utilizes fine-tuned state-of-the-art vision models (e.g., YOLOv8 / PyTorch architectures) to detect accidents in real time.
-- **Severity & Type Identification**: Classifies collision intensity (Minor, Moderate, Critical) and accident dynamics (e.g., head-on collision, rollover, multi-vehicle impact).
-- **Emergency Alert Generation**: Generates automated alert payloads containing timestamp, location, snapshot evidence, and severity rating for emergency responders.
+- YOLO26 based accident detection
+- Zero-DCE based night-time image enhancement
+- Low-light accident detection improvement
+- Aspect-ratio preserving resolution optimization
+- Temporal accident confirmation using consecutive frames
+- Accident severity estimation
+- Emergency priority classification
+- Annotated output video generation
 
 ---
 
-## 4. System Architecture
+# System Architecture
 
 ```
-                               ┌───────────────────────────┐
-                               │     Video / CCTV Input    │
-                               └─────────────┬─────────────┘
-                                             │
-                                             ▼
-                               ┌───────────────────────────┐
-                               │ Low-Light Image Enhancer  │
-                               └─────────────┬─────────────┘
-                                             │
-                                             ▼
-                               ┌───────────────────────────┐
-                               │  Accident Detection Model │
-                               └─────────────┬─────────────┘
-                                             │
-                                             ▼
-                               ┌───────────────────────────┐
-                               │ Accident Type & Severity  │
-                               └─────────────┬─────────────┘
-                                             │
-                                             ▼
-                               ┌───────────────────────────┐
-                               │ Emergency Response Alert  │
-                               │        Generator          │
-                               └───────────────────────────┘
+Input Video
+↓
+Low-Light Detection
+↓
+Zero-DCE Enhancement
+↓
+YOLO26 Accident Detection
+↓
+5-Frame Temporal Verification
+↓
+Severity Prediction
+↓
+Emergency Priority Output
+↓
+Processed Video
 ```
 
 ---
 
-## 5. Technology Stack
+# Project Workflow
 
-- **Programming Language**: Python 3.10+
-- **Deep Learning Framework**: PyTorch, Torchvision, Torchaudio
-- **Computer Vision**: OpenCV, Ultralytics (YOLO), Pillow
-- **Data & Analytics**: NumPy, Pandas, Matplotlib, Scikit-Learn
-- **Backend API**: FastAPI, Uvicorn, Pydantic
-- **Version Control**: Git
-
----
-
-## 6. Future Modules
-
-- **IoT Vehicle Telematics Integration**: Cross-referencing visual accident detection with onboard accelerometer/GPS data.
-- **Dynamic Traffic Signal Preemption**: Automatically clearing traffic lights along the route for approaching emergency vehicles.
-- **Geographic Information System (GIS) Dashboard**: Interactive map dashboard showing real-time active incidents, hospital proximity, and dispatch status.
+1. Video frames are processed sequentially.
+2. Dark frames are enhanced using Zero-DCE.
+3. Enhanced frames are passed to YOLO26.
+4. Accident classes are detected.
+5. Temporal verification reduces false alarms.
+6. Severity is calculated only after confirmed accident detection.
+7. Final output video displays accident type, severity, and priority.
 
 ---
 
-## Project Directory Structure
+# Technologies Used
+
+**Deep Learning:**
+- YOLO26
+- Zero-DCE
+
+**Programming:**
+- Python
+
+**Libraries:**
+- PyTorch
+- Ultralytics YOLO
+- OpenCV
+- NumPy
+
+**Hardware:**
+- NVIDIA GPU with CUDA support
+
+---
+
+# YOLO26 Accident Classes
+
+| Class |
+|---|
+| bike_bike_accident |
+| bike_object_accident |
+| bike_person_accident |
+| car_bike_accident |
+| car_car_accident |
+| car_object_accident |
+| car_person_accident |
+
+---
+
+# Night-Time Enhancement
+
+Zero-DCE improves illumination in low-light scenes while preserving details instead of simply increasing brightness.
+
+- Natural enhancement
+- Low-light visibility improvement
+- Integration before YOLO26 detection
+
+---
+
+# Severity Prediction Module
+
+Severity is estimated using an explainable rule-based system.
+
+**Inputs:**
+- Accident class
+- Confidence score
+- Consecutive detection frames
+- Number of detected objects
+
+**Severity levels:**
+
+| Severity | Emergency Priority |
+|---|---|
+| Minor | LOW |
+| Moderate | MEDIUM |
+| Major | HIGH |
+| Critical | IMMEDIATE |
+
+---
+
+# Performance Results
+
+## Night Accident Detection Comparison
+
+| Method | Accident Detections |
+|---|---:|
+| YOLO26 Only | 49 |
+| Zero-DCE + YOLO26 | 230 |
+
+## Optimization Results
+
+| Metric | Result |
+|---|---:|
+| Zero-DCE input resolution | 1786×1246 → 640×446 |
+| FPS improvement | 3.91 → 16.48 |
+| GPU memory reduction | 85.9% |
+| Zero-DCE inference reduction | 83.9% |
+
+## Final Integrated Pipeline
+
+- Severity module integrated successfully
+- Optimized severity visualization implemented
+- Final severity pipeline achieved approximately 10.74 FPS during integrated testing
+- Detection and severity outputs remained unchanged
+
+---
+
+# Project Structure
 
 ```
 AI-Smart-Accident-Detection-System/
-├── datasets/
-│   ├── accident_detection/
-│   ├── low_light/
-│   └── severity/
-├── models/
-│   ├── detection/
-│   ├── enhancement/
-│   └── severity/
-├── training/
-│   ├── detection/
-│   ├── enhancement/
-│   └── severity/
+
 ├── inference/
-│   ├── accident_detection.py
+│   ├── enhanced_accident_detection.py
+│   ├── enhanced_accident_detection_severity.py
+│   ├── severity_prediction.py
 │   ├── enhancement.py
-│   └── severity_prediction.py
-├── backend/
-│   ├── app.py
-│   ├── inference.py
-│   ├── requirements.txt
-│   └── uploads/
-├── results/
-├── experiments/
-├── notebooks/
-├── docs/
-├── check_gpu.py
-├── README.md
-└── requirements.txt
+│   └── accident_detection.py
+│
+├── training/
+│
+├── models/
+│
+├── datasets/
+│
+├── requirements.txt
+└── README.md
+```
+
+---
+
+# Installation
+
+```bash
+git clone <repository-url>
+
+cd AI-Smart-Accident-Detection-System
+
+pip install -r requirements.txt
 ```
