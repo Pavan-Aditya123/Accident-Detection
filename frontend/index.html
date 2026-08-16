@@ -8,23 +8,44 @@
 </head>
 <body>
 
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <header>
     <div class="header-inner">
-      <span class="header-icon">🚨</span>
-      <h1>AI Smart Accident Detection System</h1>
+      <div class="header-logo">
+        <span class="logo-icon">🚨</span>
+      </div>
+      <div class="header-text">
+        <h1>AI Smart Accident Detection System</h1>
+        <p class="header-sub">Night-Time Accident Detection using Zero-DCE Enhancement and YOLO26</p>
+      </div>
+      <div class="header-pills">
+        <span class="pill pill-blue">Zero-DCE</span>
+        <span class="pill pill-purple">YOLO26</span>
+        <span class="pill pill-green">CUDA</span>
+      </div>
     </div>
   </header>
 
   <main>
 
-    <!-- Upload Card -->
+    <!-- ── Upload Card ───────────────────────────────────────────────────── -->
     <section class="card" id="upload-card">
-      <h2>Upload Video</h2>
-      <p class="card-sub">Supported formats: <strong>.mp4 &nbsp;.mov &nbsp;.avi</strong></p>
+      <div class="card-header">
+        <span class="card-icon">📤</span>
+        <div>
+          <h2>Upload Video</h2>
+          <p class="card-sub">
+            Supported formats: <strong>.mp4 &nbsp;·&nbsp; .mov &nbsp;·&nbsp; .avi</strong>
+          </p>
+        </div>
+      </div>
 
       <div class="drop-zone" id="drop-zone">
-        <span class="drop-icon">📁</span>
-        <p>Drag &amp; drop a video here, or click to browse</p>
+        <div class="drop-zone-inner">
+          <span class="drop-icon">🎥</span>
+          <p class="drop-title">Drop your video here</p>
+          <p class="drop-hint">or click anywhere in this area to browse</p>
+        </div>
         <input type="file" id="file-input" accept=".mp4,.mov,.avi" />
       </div>
 
@@ -35,13 +56,24 @@
       </div>
 
       <button class="btn-primary" id="btn-upload" disabled>
-        Run Detection
+        <span class="btn-icon">⚡</span> Run Detection
       </button>
+
+      <div class="pipeline-strip">
+        <span class="pipe-step">Zero-DCE Enhancement</span>
+        <span class="pipe-arrow">→</span>
+        <span class="pipe-step">YOLO26 Detection</span>
+        <span class="pipe-arrow">→</span>
+        <span class="pipe-step">Severity Analysis</span>
+      </div>
     </section>
 
-    <!-- Status Card -->
+    <!-- ── Status Card ───────────────────────────────────────────────────── -->
     <section class="card hidden" id="status-card">
-      <h2>Processing Status</h2>
+      <div class="card-header">
+        <span class="card-icon">⚙️</span>
+        <h2>Processing Status</h2>
+      </div>
       <div class="status-row">
         <span class="status-dot" id="status-dot"></span>
         <span id="status-text">Waiting…</span>
@@ -49,11 +81,15 @@
       <div class="progress-bar-wrap hidden" id="progress-wrap">
         <div class="progress-bar"></div>
       </div>
+      <p class="status-hint">The AI pipeline typically takes 1–3 minutes depending on video length.</p>
     </section>
 
-    <!-- Results Card -->
+    <!-- ── Results Card ──────────────────────────────────────────────────── -->
     <section class="card hidden" id="results-card">
-      <h2>Detection Results</h2>
+      <div class="card-header">
+        <span class="card-icon">📊</span>
+        <h2>Detection Results</h2>
+      </div>
 
       <!-- Accident status banner -->
       <div class="accident-banner" id="accident-banner">
@@ -61,9 +97,12 @@
         <span id="banner-text"></span>
       </div>
 
-      <!-- Severity panel (shown only when an accident is confirmed) -->
+      <!-- Severity panel -->
       <div class="severity-panel hidden" id="severity-panel">
-        <h3>Severity Assessment</h3>
+        <div class="severity-panel-header">
+          <span class="sev-panel-icon">⚠️</span>
+          <h3>Severity Assessment</h3>
+        </div>
         <div class="sev-grid">
           <div class="sev-item">
             <span class="sev-label">Accident Type</span>
@@ -78,26 +117,29 @@
             <span class="sev-value badge-sev" id="sev-level"></span>
           </div>
           <div class="sev-item">
-            <span class="sev-label">Priority</span>
+            <span class="sev-label">Emergency Priority</span>
             <span class="sev-value badge-pri" id="sev-priority"></span>
           </div>
         </div>
-        <p class="sev-reason" id="sev-reason"></p>
+        <div class="sev-reason-box">
+          <span class="sev-reason-label">Analysis Reason</span>
+          <p class="sev-reason" id="sev-reason"></p>
+        </div>
       </div>
 
       <!-- Detection stats -->
       <div class="stats-row" id="stats-row">
         <div class="stat-box">
           <span class="stat-val" id="stat-frames">—</span>
-          <span class="stat-label">Frames</span>
+          <span class="stat-label">Frames Processed</span>
         </div>
         <div class="stat-box">
           <span class="stat-val" id="stat-possible">—</span>
           <span class="stat-label">Possible Events</span>
         </div>
-        <div class="stat-box">
+        <div class="stat-box stat-box-accent">
           <span class="stat-val" id="stat-confirmed">—</span>
-          <span class="stat-label">Confirmed</span>
+          <span class="stat-label">Confirmed Events</span>
         </div>
         <div class="stat-box">
           <span class="stat-val" id="stat-fps">—</span>
@@ -105,7 +147,7 @@
         </div>
       </div>
 
-      <!-- File details -->
+      <!-- File info -->
       <div class="result-grid">
         <div class="result-item">
           <span class="result-label">Input File</span>
@@ -119,26 +161,38 @@
 
       <!-- Video player -->
       <div class="video-section hidden" id="video-section">
-        <h3>Processed Output Video</h3>
+        <div class="video-header">
+          <span>🎬</span>
+          <h3>Processed Output Video</h3>
+        </div>
         <video id="output-video" controls playsinline>
           Your browser does not support the video element.
         </video>
       </div>
 
-      <button class="btn-secondary" id="btn-reset">Process Another Video</button>
+      <button class="btn-secondary" id="btn-reset">
+        <span>↩</span> Process Another Video
+      </button>
     </section>
 
-    <!-- Error Card -->
+    <!-- ── Error Card ─────────────────────────────────────────────────────── -->
     <section class="card card-error hidden" id="error-card">
-      <h2>⚠ Error</h2>
+      <div class="card-header">
+        <span class="card-icon">⚠️</span>
+        <h2>Error</h2>
+      </div>
       <p id="error-message"></p>
-      <button class="btn-secondary" id="btn-error-reset">Try Again</button>
+      <button class="btn-secondary" id="btn-error-reset">↩ Try Again</button>
     </section>
 
   </main>
 
   <footer>
-    <p>AI Smart Accident Detection System &nbsp;·&nbsp; Zero-DCE + YOLO26 + Severity Pipeline</p>
+    <div class="footer-inner">
+      <span>AI Smart Accident Detection System</span>
+      <span class="footer-sep">·</span>
+      <span>Zero-DCE + YOLO26 + Rule-Based Severity</span>
+    </div>
   </footer>
 
   <script src="script.js"></script>
