@@ -1,14 +1,54 @@
-venv/
+# Python
 __pycache__/
 *.pyc
-datasets/
-models/*.pt
-models/*.pth
-.env
-logs/
-outputs/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
 .vscode/
 .idea/
+
+# Generated outputs
+runs/
+results/
+
+# Test videos
+inference/videos/
+
+# Generated media
+*.jpg
+*.png
+*.mp4
+*.mov
+*.avi
+
+# Model weights (do not upload large files)
+models/*.pt
+models/*.pth
+*.pt
+*.pth
+
+# Environment
+.env
+
+# Logs
 *.log
+logs/
+outputs/
+
+# Backend
 backend/uploads/*
 !backend/uploads/.gitkeep
+
+
+# Local datasets
+datasets/
+
+# Backup files
+*_BACKUP.py
+
+# Test images
+inference/images/
