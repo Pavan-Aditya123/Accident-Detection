@@ -131,6 +131,37 @@ async function uploadAndProcess(file) {
   }
 }
 
+// ── Friendly reason text ──────────────────────────────────────────────────────
+function friendlyReason(sev) {
+  if (!sev) return '';
+  const parts = [];
+
+  // Confidence
+  const conf = sev.confidence ?? 0;
+  if (conf >= 0.85)      parts.push('High-confidence detection');
+  else if (conf >= 0.72) parts.push('Moderate-confidence detection');
+  else                   parts.push('Low-confidence detection');
+
+  // Severity / impact
+  const impact = sev.impact_level || '';
+  if (impact === 'Very High') parts.push('with human involvement');
+  else if (impact === 'High') parts.push('involving a car-bike collision');
+  else if (impact === 'Medium') parts.push('involving a vehicle collision');
+  else if (impact === 'Low')  parts.push('with minimal impact risk');
+
+  // Class cleanup
+  const cls = (sev.accident_class || '').replace(/_/g, ' ');
+  if (cls) parts.push(`(${cls})`);
+
+  // Priority escalation note
+  const pri = sev.priority || '';
+  if (pri === 'IMMEDIATE') parts.push('— immediate emergency response recommended');
+  else if (pri === 'HIGH') parts.push('— emergency services should be notified');
+  else if (pri === 'MEDIUM') parts.push('— traffic control should be alerted');
+
+  return parts.join(' ') || 'Accident confirmed by temporal verification.';
+}
+
 // ── Results ───────────────────────────────────────────────────────────────────
 function showResults(data) {
   setStatus('completed', 'Processing complete.');
@@ -156,7 +187,7 @@ function showResults(data) {
     sevPriority.textContent = sev.priority || '—';
     sevPriority.dataset.pri = sev.priority || '';
 
-    sevReason.textContent = sev.reason || '';
+    sevReason.textContent = friendlyReason(sev);
     severityPanel.classList.remove('hidden');
   } else {
     severityPanel.classList.add('hidden');
@@ -169,8 +200,9 @@ function showResults(data) {
   statFps.textContent       = data.avg_fps != null ? data.avg_fps.toFixed(1) : '—';
 
   // ── File info ─────────────────────────────────────────────────────────────
-  resInput.textContent  = data.input_video  || '—';
-  resOutput.textContent = data.output_video || '—';
+  resInput.textContent  = data.input_video     || '—';
+  // Show only the filename, not the full server-side path
+  resOutput.textContent = data.output_filename || '—';
 
   // ── Video player ──────────────────────────────────────────────────────────
   // The backend exposes GET /video/{filename} to stream the output file.
