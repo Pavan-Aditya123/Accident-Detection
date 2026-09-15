@@ -31,6 +31,7 @@ Possible final decisions:
     ACCIDENT CONFIRMED — SEVERITY UNCERTAIN
 """
 
+import subprocess
 import sys
 import time
 import argparse
@@ -38,9 +39,72 @@ from collections import Counter
 from pathlib import Path
 
 import cv2
+import imageio_ffmpeg
 import numpy as np
 import torch
 from ultralytics import YOLO
+
+def _finalize_and_verify_video(raw_output_path: str, final_output_path: str, input_fps: float, input_frames: int):
+    """
+    Ensures browser compatibility by converting raw video to H.264 (yuv420p) with faststart header.
+    Verifies output file size, frame count, FPS, and duration against input parameters.
+    """
+    raw_p = Path(raw_output_path)
+    final_p = Path(final_output_path)
+
+    try:
+        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        tmp_target = final_p.parent / f"tmp_{final_p.name}"
+        cmd = [
+            ffmpeg_exe, "-y",
+            "-i", str(raw_p),
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            str(tmp_target)
+        ]
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if res.returncode == 0 and tmp_target.exists() and tmp_target.stat().st_size > 0:
+            if raw_p.exists() and raw_p != final_p:
+                raw_p.unlink()
+            if final_p.exists():
+                final_p.unlink()
+            tmp_target.rename(final_p)
+        else:
+            if raw_p != final_p and raw_p.exists():
+                if final_p.exists():
+                    final_p.unlink()
+                raw_p.rename(final_p)
+    except Exception as e:
+        print(f"  [!] H.264 conversion warning: {e}")
+        if raw_p != final_p and raw_p.exists():
+            if final_p.exists():
+                final_p.unlink()
+            raw_p.rename(final_p)
+
+    if not final_p.exists():
+        raise RuntimeError(f"Output video missing: {final_p}")
+    size_bytes = final_p.stat().st_size
+    if size_bytes == 0:
+        raise RuntimeError(f"Output video is 0 bytes: {final_p}")
+
+    out_cap = cv2.VideoCapture(str(final_p))
+    out_fps = float(out_cap.get(cv2.CAP_PROP_FPS))
+    out_frames = int(out_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    out_dur = out_frames / out_fps if out_fps > 0 else 0.0
+    out_cap.release()
+
+    in_dur = input_frames / input_fps if input_fps > 0 else 0.0
+
+    print("\n" + "=" * 50)
+    print("OUTPUT VIDEO VERIFICATION REPORT")
+    print("=" * 50)
+    print(f"File Path    : {final_p.resolve()}")
+    print(f"File Size    : {size_bytes / (1024*1024):.2f} MB")
+    print(f"INPUT Stats  : FPS={input_fps:.2f}, Frames={input_frames}, Duration={in_dur:.2f}s")
+    print(f"OUTPUT Stats : FPS={out_fps:.2f}, Frames={out_frames}, Duration={out_dur:.2f}s")
+    print("=" * 50 + "\n")
+
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
@@ -471,7 +535,8 @@ def run(
         print(f"[!] Cannot open video: {video_path}")
         sys.exit(1)
 
-    fps          = int(cap.get(cv2.CAP_PROP_FPS)) or 25
+    fps_val      = cap.get(cv2.CAP_PROP_FPS)
+    fps          = float(fps_val) if (fps_val and fps_val > 0 and not np.isnan(fps_val)) else 25.0
     width        = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height       = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -485,7 +550,7 @@ def run(
     print(f"  Severity Model  : loaded  ({SEVERITY_MODEL.name})")
     print(f"  Input           : {Path(video_path).name}")
     print(f"  Frames          : {total_frames}")
-    print(f"  FPS             : {fps}")
+    print(f"  FPS             : {fps:.2f}")
     print(f"  Resolution      : {width}x{height}")
     print(DASH)
     print("  PROCESSING")
@@ -493,8 +558,10 @@ def run(
 
     # ── Output video ───────────────────────────────────────────────────────────
     Path(output_video_path).parent.mkdir(parents=True, exist_ok=True)
-    fourcc = cv2.VideoWriter_fourcc(*"avc1")
-    writer = cv2.VideoWriter(str(output_video_path), fourcc, fps, (width, height))
+    raw_output_path = str(Path(output_video_path).parent / f"raw_{Path(output_video_path).name}")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    writer = cv2.VideoWriter(raw_output_path, fourcc, fps, (width, height))
+
 
     # ── Temporal verifier ──────────────────────────────────────────────────────
     verifier = TemporalVerifier(confirm_frames=confirm_frames)
@@ -529,6 +596,8 @@ def run(
     display_confirmed      = False
     display_not_confirmed  = False
     display_severity_label = None
+    latched_confirmed      = False
+    latched_severity_label = None
 
     while True:
         ret, frame = cap.read()
@@ -698,6 +767,8 @@ def run(
                 display_confirmed      = True
                 display_not_confirmed  = False
                 display_severity_label = overlay_sev
+                latched_confirmed      = True
+                latched_severity_label = overlay_sev
 
             else:
                 # Spatial check failed — accident detected but not verified
@@ -728,14 +799,18 @@ def run(
 
         _, consecutive    = verifier.get_current_status()
         current_acc_class = verifier.current_accident_class
-        _overlay_status(annotated, current_acc_class, consecutive,
-                        confirm_frames, display_confirmed,
-                        display_not_confirmed, display_severity_label)
 
-        if consecutive == 0 and not is_confirmed:
+        if latched_confirmed:
+            display_confirmed      = True
+            display_severity_label = latched_severity_label
+        elif consecutive == 0 and not is_confirmed:
             display_confirmed      = False
             display_not_confirmed  = False
             display_severity_label = None
+
+        _overlay_status(annotated, current_acc_class, consecutive,
+                        confirm_frames, display_confirmed,
+                        display_not_confirmed, display_severity_label)
 
         writer.write(annotated)
 
@@ -770,6 +845,14 @@ def run(
 
     cap.release()
     writer.release()
+
+    _finalize_and_verify_video(
+        raw_output_path=raw_output_path,
+        final_output_path=output_video_path,
+        input_fps=fps,
+        input_frames=total_frames
+    )
+
 
     if current_incident is not None:
         incidents.append(current_incident)

@@ -16,10 +16,10 @@ sys.path.insert(0, str(ROOT_DIR))
 # Import the existing integrated video test pipeline
 from testing.integrated_video_test import run as run_integrated_test
 
-OUTPUT_DIR = ROOT_DIR / "static" / "outputs"
+INTEGRATION_RESULTS_DIR = ROOT_DIR / "results" / "integration"
 UPLOADS_DIR = ROOT_DIR / "static" / "uploads"
 
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+INTEGRATION_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 def analyze_video(input_video_path: str, camera_id: str = "C03", location: str = "NH-44 Demo Location") -> dict:
@@ -29,10 +29,10 @@ def analyze_video(input_video_path: str, camera_id: str = "C03", location: str =
     """
     req_id = str(uuid.uuid4())[:8]
     in_path = Path(input_video_path)
-    output_video_filename = f"res_{req_id}_{in_path.stem}.mp4"
-    output_video_path = OUTPUT_DIR / output_video_filename
+    output_video_filename = f"accident_result_{camera_id}_{req_id}_{in_path.stem}.mp4"
+    output_video_path = INTEGRATION_RESULTS_DIR / output_video_filename
     summary_filename = f"summary_{req_id}.txt"
-    summary_path = OUTPUT_DIR / summary_filename
+    summary_path = INTEGRATION_RESULTS_DIR / summary_filename
 
     # Execute the actual integrated pipeline
     run_integrated_test(
@@ -82,7 +82,8 @@ def analyze_video(input_video_path: str, camera_id: str = "C03", location: str =
     duration = summary_data.get("Duration", "N/A")
 
     # Relative video URL for static server
-    output_video_url = f"/static/outputs/{output_video_filename}"
+    output_video_url = f"/integration-results/{output_video_filename}"
+
 
     return {
         "accident_detected": accident_detected,

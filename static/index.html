@@ -99,7 +99,12 @@
                     class="px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 relative">
                     <i data-lucide="cross" class="w-4 h-4 text-rose-500"></i>
                     HOSPITAL EMERGENCY
-                    <span id="hospital-badge-count" class="hidden absolute -top-1 -right-1 px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-full animate-bounce">0</span>
+                    <span id="hospital-badge-count" class="hidden absolute -top-1 -right-1 px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-full">0</span>
+                </button>
+                <button onclick="resetDemoWorkflow()" 
+                    class="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all bg-slate-800 hover:bg-rose-950/60 hover:text-rose-400 text-slate-400 border border-slate-700">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    RESET DEMO
                 </button>
             </nav>
 
@@ -153,6 +158,19 @@
                     </div>
                     <div id="camera-matrix-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                         <!-- Rendered dynamically by app.js -->
+                    </div>
+                </div>
+
+                <!-- ACTIVE DISPATCHED ALERTS TELEMETRY PANEL -->
+                <div class="bg-[#111827] border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between border-b border-slate-800 pb-2">
+                        <span class="flex items-center gap-2"><i data-lucide="activity" class="w-4 h-4 text-blue-400"></i> HIGHWAY EMERGENCY RESPONSE STATUS</span>
+                        <span id="highway-alerts-count-badge" class="text-[11px] font-mono text-slate-400">0 Active Alerts</span>
+                    </div>
+                    <div id="highway-alerts-list" class="space-y-2">
+                        <div class="text-xs text-slate-500 p-3 bg-slate-900/40 rounded-xl text-center border border-slate-800">
+                            NO ACTIVE ACCIDENT ALERTS
+                        </div>
                     </div>
                 </div>
 
@@ -254,7 +272,7 @@
                             <span class="hud-status text-slate-500">Waiting...</span>
                         </div>
                         <div id="hud-step-temporal" class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                            <span class="text-slate-300 font-medium">Temporal Verification (5-Frame Window)</span>
+                            <span class="text-slate-300 font-medium">Temporal Verification (3-Frame Window)</span>
                             <span class="hud-status text-slate-500">Waiting...</span>
                         </div>
                         <div id="hud-step-severity" class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
@@ -289,7 +307,7 @@
                             <span class="text-xs font-bold text-rose-400 uppercase tracking-widest">TRAUMA & EMERGENCY RESPONSE TERMINAL</span>
                             <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">DISPATCH READY</span>
                         </div>
-                        <h2 class="text-xl font-black text-slate-100">DEMO GENERAL HOSPITAL — EMERGENCY DEPT</h2>
+                        <h2 id="hospital-header-title" class="text-xl font-black text-slate-100 uppercase">EMERGENCY TRAUMA RESPONSE TERMINAL</h2>
                         <p class="text-xs text-slate-400">Direct alert synchronization with National Highways Authority AI Detection Network</p>
                     </div>
                 </div>
@@ -298,6 +316,22 @@
                     <span class="text-slate-400">Active Hospital Desk:</span>
                     <span class="font-bold text-emerald-400 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> ONLINE</span>
                 </div>
+            </div>
+
+            <!-- Hospital Emergency Route Map Card -->
+            <div id="hospital-map-container" class="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden shadow-2xl space-y-0 hidden">
+                <div class="bg-slate-900/90 px-4 py-3 border-b border-slate-800/80 flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-rose-500"></i>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200">EMERGENCY RESPONSE ROAD ROUTE MAP</h3>
+                        <span class="text-[11px] text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded-full font-mono border border-rose-900/50">OSRM Road Routing Active</span>
+                    </div>
+                    <div id="hospital-map-telemetry" class="text-xs font-mono text-slate-300 flex items-center gap-3">
+                        <span id="hospital-route-distance" class="text-slate-300 font-bold">Road Distance: -- km</span>
+                        <span id="hospital-route-eta" class="text-rose-400 font-bold">Est. Travel Time: -- min</span>
+                    </div>
+                </div>
+                <div id="hospital-emergency-map" class="w-full h-[380px] bg-[#090D16] z-10"></div>
             </div>
 
             <!-- Emergency Alert List Feed -->
