@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>National Highways AI Smart Accident Monitoring & Response</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        nha: {
+                            dark: '#090D16',
+                            card: '#111827',
+                            border: '#1E293B',
+                            accent: '#2563EB',
+                            alert: '#EF4444',
+                            warning: '#F59E0B',
+                            success: '#10B981',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Leaflet CSS & JS for Interactive Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-[#090D16] text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+
+    <!-- TOP CONTROL CENTER HEADER -->
+    <header class="bg-[#0f172a]/95 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-[1700px] mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <!-- Branding & Title -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 font-bold text-xl shadow-lg shadow-blue-500/10">
+                    <i data-lucide="shield-alert" class="w-6 h-6 text-blue-400"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-semibold tracking-widest text-blue-400 uppercase">National Highways Authority</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-1"></span> ONLINE
+                        </span>
+                    </div>
+                    <h1 class="text-lg font-bold text-slate-100 tracking-tight">AI SMART ACCIDENT MONITORING & RESPONSE SYSTEM</h1>
+                </div>
+            </div>
+
+            <!-- Global Status Telemetry Stats Bar -->
+            <div class="grid grid-cols-4 gap-3 bg-slate-900/80 p-2 rounded-xl border border-slate-800 text-xs">
+                <div class="px-3 py-1 border-r border-slate-800">
+                    <div class="text-slate-400 text-[11px] font-medium">CAMERAS</div>
+                    <div class="font-bold text-slate-200 text-sm flex items-center gap-1.5">
+                        <i data-lucide="video" class="w-3.5 h-3.5 text-blue-400"></i>
+                        <span id="stat-cameras-count">6</span> Total
+                    </div>
+                </div>
+                <div class="px-3 py-1 border-r border-slate-800">
+                    <div class="text-slate-400 text-[11px] font-medium">ACTIVE</div>
+                    <div class="font-bold text-emerald-400 text-sm flex items-center gap-1.5">
+                        <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span id="stat-active-count">6</span> Online
+                    </div>
+                </div>
+                <div class="px-3 py-1 border-r border-slate-800">
+                    <div class="text-slate-400 text-[11px] font-medium">ALERTS</div>
+                    <div class="font-bold text-amber-400 text-sm flex items-center gap-1.5">
+                        <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400"></i>
+                        <span id="stat-alerts-count">0</span> Active
+                    </div>
+                </div>
+                <div class="px-3 py-1">
+                    <div class="text-slate-400 text-[11px] font-medium">INCIDENTS TODAY</div>
+                    <div class="font-bold text-rose-400 text-sm flex items-center gap-1.5">
+                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i>
+                        <span id="stat-incidents-count">0</span> Confirmed
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Switcher Navigation Tabs -->
+            <nav class="flex p-1 bg-slate-900 border border-slate-800 rounded-xl space-x-1">
+                <button id="nav-btn-highway" onclick="switchDashboardView('highway')" 
+                    class="px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-blue-600 text-white shadow-md shadow-blue-600/30">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    HIGHWAY AUTHORITY
+                </button>
+                <button id="nav-btn-hospital" onclick="switchDashboardView('hospital')" 
+                    class="px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 relative">
+                    <i data-lucide="cross" class="w-4 h-4 text-rose-500"></i>
+                    HOSPITAL EMERGENCY
+                    <span id="hospital-badge-count" class="hidden absolute -top-1 -right-1 px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-full animate-bounce">0</span>
+                </button>
+            </nav>
+
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 flex flex-col">
+
+        <!-- ======================================================================= -->
+        <!-- VIEW A: HIGHWAY AUTHORITY DASHBOARD -->
+        <!-- ======================================================================= -->
+        <div id="view-highway-dashboard" class="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+            
+            <!-- LEFT: INTERACTIVE MAP & CAMERA MATRIX (8 Cols) -->
+            <div class="lg:col-span-8 flex flex-col space-y-4">
+                
+                <!-- MAP CONTAINER CARD -->
+                <div class="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col flex-1 min-h-[520px] relative">
+                    <!-- Map Header Bar -->
+                    <div class="bg-slate-900/90 px-4 py-3 border-b border-slate-800/80 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-blue-400"></i>
+                            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">HIGHWAY CCTV MONITORING MAP</h2>
+                            <span class="text-[11px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full font-mono">NH-44 / NH-48 / NH-16 / NH-65</span>
+                        </div>
+                        <!-- Legend -->
+                        <div class="flex items-center space-x-3 text-[11px] text-slate-300 font-medium">
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span> Online</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm shadow-amber-400/50"></span> Processing</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></span> Accident</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span> Offline</span>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Map Render Container -->
+                    <div id="highway-map" class="w-full h-full min-h-[460px] flex-1 z-10 bg-[#090D16]"></div>
+                    
+                    <!-- Map Canvas Fallback Info Overlay -->
+                    <div id="map-notice" class="absolute bottom-3 right-3 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg text-[11px] text-slate-400 z-20 flex items-center gap-2">
+                        <i data-lucide="info" class="w-3.5 h-3.5 text-blue-400"></i>
+                        <span>Click any camera marker to load CCTV stream</span>
+                    </div>
+                </div>
+
+                <!-- CAMERA QUICK SELECT GRID MATRIX -->
+                <div class="bg-[#111827] border border-slate-800 rounded-2xl p-4 shadow-xl">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center justify-between">
+                        <span>CCTV CAMERAS OVERVIEW</span>
+                        <span class="text-[11px] font-normal text-slate-500">Select camera to inspect</span>
+                    </div>
+                    <div id="camera-matrix-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                        <!-- Rendered dynamically by app.js -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT: CAMERA CONTROL & AI INFERENCE PANEL (4 Cols) -->
+            <div class="lg:col-span-4 flex flex-col space-y-4">
+
+                <!-- CAMERA CONTROL DRAWER -->
+                <div class="bg-[#111827] border border-slate-800 rounded-2xl p-5 shadow-2xl flex flex-col space-y-4 relative">
+                    
+                    <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                                <i data-lucide="camera" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h3 id="panel-camera-id" class="text-base font-bold text-slate-100">CAMERA C03</h3>
+                                <p id="panel-camera-highway" class="text-xs text-blue-400 font-semibold">NH-44</p>
+                            </div>
+                        </div>
+                        <span id="panel-camera-status-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span> ONLINE
+                        </span>
+                    </div>
+
+                    <div class="text-xs text-slate-400 space-y-1 bg-slate-900/60 p-3 rounded-xl border border-slate-800/60">
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Location:</span>
+                            <span id="panel-camera-location" class="font-medium text-slate-200">NH-44 KM 230 — Karnal Highway Junction</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Coordinates:</span>
+                            <span id="panel-camera-coords" class="font-mono text-slate-300">29.6857° N, 76.9905° E</span>
+                        </div>
+                    </div>
+
+                    <!-- VIDEO SOURCE SELECTION -->
+                    <div class="space-y-3">
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-300 block">Select CCTV Footage Source</label>
+                        
+                        <!-- Upload CCTV Video File Button / Dropzone -->
+                        <div class="border-2 border-dashed border-slate-700 hover:border-blue-500/60 rounded-xl p-4 text-center cursor-pointer transition-colors bg-slate-900/40 group relative">
+                            <input type="file" id="cctv-file-input" accept="video/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileSelect(event)">
+                            <div class="flex flex-col items-center space-y-1.5">
+                                <i data-lucide="upload-cloud" class="w-6 h-6 text-slate-400 group-hover:text-blue-400 transition-colors"></i>
+                                <span id="upload-filename-text" class="text-xs font-medium text-slate-300">Click or Drag CCTV Video (.mp4 / .avi)</span>
+                                <span class="text-[10px] text-slate-500">Upload video to run AI model analysis</span>
+                            </div>
+                        </div>
+
+                        <!-- OR Quick Select Sample Videos -->
+                        <div class="space-y-1.5">
+                            <span class="text-[11px] font-semibold text-slate-400 block">Or choose a test CCTV clip:</span>
+                            <div id="sample-video-buttons" class="grid grid-cols-2 gap-2">
+                                <!-- Populated dynamically by app.js -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIDEO PREVIEW CONTAINER -->
+                    <div id="video-preview-wrapper" class="hidden space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-slate-400 font-medium">Selected Video Stream Preview</span>
+                            <span id="selected-video-name" class="text-blue-400 font-mono text-[11px] truncate max-w-[180px]">5.mp4</span>
+                        </div>
+                        <div class="relative rounded-xl overflow-hidden border border-slate-800 bg-black aspect-video flex items-center justify-center">
+                            <video id="cctv-preview-player" class="w-full h-full object-contain" controls muted playsinline></video>
+                        </div>
+                    </div>
+
+                    <!-- ANALYZE FOR ACCIDENT ACTION BUTTON -->
+                    <button id="btn-analyze" onclick="triggerAccidentAnalysis()" disabled
+                        class="w-full py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700">
+                        <i data-lucide="play-circle" class="w-4 h-4"></i>
+                        ANALYZE FOR ACCIDENT
+                    </button>
+
+                </div>
+
+                <!-- PROCESSING / PROGRESS STATE HUD -->
+                <div id="analysis-hud-card" class="hidden bg-[#111827] border border-blue-500/30 rounded-2xl p-5 shadow-2xl space-y-4 animate-pulse">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 rounded-full bg-amber-400 animate-ping"></div>
+                            <h4 class="text-xs font-bold text-amber-400 tracking-wider uppercase">ANALYZING CCTV FOOTAGE</h4>
+                        </div>
+                        <span class="text-[10px] font-mono text-slate-400">YOLO26 PIPELINE</span>
+                    </div>
+
+                    <!-- Progress Steps -->
+                    <div class="space-y-2.5 text-xs">
+                        <div id="hud-step-night" class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                            <span class="text-slate-300 font-medium">Night Traffic Object Detection</span>
+                            <span class="hud-status font-bold text-amber-400 flex items-center gap-1.5"><i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i> Processing...</span>
+                        </div>
+                        <div id="hud-step-accident" class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                            <span class="text-slate-300 font-medium">Accident Detection Model</span>
+                            <span class="hud-status text-slate-500">Waiting...</span>
+                        </div>
+                        <div id="hud-step-temporal" class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                            <span class="text-slate-300 font-medium">Temporal Verification (5-Frame Window)</span>
+                            <span class="hud-status text-slate-500">Waiting...</span>
+                        </div>
+                        <div id="hud-step-severity" class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                            <span class="text-slate-300 font-medium">Accident Severity Analysis</span>
+                            <span class="hud-status text-slate-500">Waiting...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI RESULT DISPLAY CARDS CONTAINER -->
+                <div id="ai-result-container">
+                    <!-- Dynamic result cards inserted by app.js -->
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ======================================================================= -->
+        <!-- VIEW B: HOSPITAL EMERGENCY DASHBOARD -->
+        <!-- ======================================================================= -->
+        <div id="view-hospital-dashboard" class="hidden flex-1 flex-col space-y-5">
+            
+            <!-- Hospital Header Banner -->
+            <div class="bg-gradient-to-r from-rose-950/40 via-[#111827] to-slate-900 border border-rose-900/40 rounded-2xl p-5 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-rose-600/20 border border-rose-500/40 flex items-center justify-center text-rose-500">
+                        <i data-lucide="cross" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-bold text-rose-400 uppercase tracking-widest">TRAUMA & EMERGENCY RESPONSE TERMINAL</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">DISPATCH READY</span>
+                        </div>
+                        <h2 class="text-xl font-black text-slate-100">DEMO GENERAL HOSPITAL — EMERGENCY DEPT</h2>
+                        <p class="text-xs text-slate-400">Direct alert synchronization with National Highways Authority AI Detection Network</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800 text-xs">
+                    <span class="text-slate-400">Active Hospital Desk:</span>
+                    <span class="font-bold text-emerald-400 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> ONLINE</span>
+                </div>
+            </div>
+
+            <!-- Emergency Alert List Feed -->
+            <div class="flex-1 flex flex-col space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <i data-lucide="siren" class="w-4 h-4 text-rose-500"></i>
+                        INCOMING HIGHWAY ACCIDENT ALERTS
+                    </h3>
+                    <span id="hospital-alert-feed-count" class="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800 font-mono">0 Alerts Received</span>
+                </div>
+
+                <!-- Feed Container -->
+                <div id="hospital-alerts-feed" class="space-y-4 flex-1">
+                    <!-- Empty State Placeholder -->
+                    <div id="hospital-empty-state" class="bg-[#111827] border border-slate-800 rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-3">
+                        <div class="w-14 h-14 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600">
+                            <i data-lucide="bell-off" class="w-7 h-7"></i>
+                        </div>
+                        <h4 class="text-base font-bold text-slate-300">NO ACCIDENT ALERTS RECEIVED YET</h4>
+                        <p class="text-xs text-slate-500 max-w-md">When an accident is detected and confirmed on the Highway Authority Dashboard, an emergency dispatch alert will appear here instantly.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-950/80 border-t border-slate-900 px-6 py-3 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div>National Highways Authority AI Smart Accident Detection System &copy; 2026</div>
+        <div class="flex items-center space-x-4">
+            <span>Powered by YOLO26 Baseline &amp; Night Traffic AI Pipeline</span>
+            <span class="text-emerald-400 font-mono">System Status: 100% Operational</span>
+        </div>
+    </footer>
+
+    <!-- JS Application Script -->
+    <script src="/static/js/app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

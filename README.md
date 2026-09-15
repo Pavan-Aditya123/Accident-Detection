@@ -1,61 +1,55 @@
 # AI Smart Accident Detection System
 
-An AI-based accident detection framework that combines Zero-DCE low-light enhancement with YOLO26 accident detection and rule-based severity estimation to improve night-time road accident analysis.
+A YOLO26-based accident detection system for CCTV video analysis. Detects accidents and objects in traffic footage with bounding box annotations and confidence scores.
 
 ---
 
 # Features
 
-- YOLO26 based accident detection
-- Zero-DCE based night-time image enhancement
-- Low-light accident detection improvement
-- Aspect-ratio preserving resolution optimization
-- Temporal accident confirmation using consecutive frames
-- Accident severity estimation
-- Emergency priority classification
-- Annotated output video generation
+- YOLO26-based accident detection
+- 10-class object detection (accidents, vehicles, pedestrians)
+- Image and video inference support
+- Annotated output with bounding boxes, class names, and confidence scores
 
 ---
 
 # System Architecture
 
 ```
-Input Video
-↓
-Low-Light Detection
-↓
-Zero-DCE Enhancement
-↓
-YOLO26 Accident Detection
-↓
-5-Frame Temporal Verification
-↓
-Severity Prediction
-↓
-Emergency Priority Output
-↓
-Processed Video
+Image/Video Input
+        ↓
+YOLO26 Model
+        ↓
+Detection
+        ↓
+Class + Bounding Box + Confidence
+        ↓
+Annotated Output
 ```
 
 ---
 
-# Project Workflow
+# YOLO26 Classes
 
-1. Video frames are processed sequentially.
-2. Dark frames are enhanced using Zero-DCE.
-3. Enhanced frames are passed to YOLO26.
-4. Accident classes are detected.
-5. Temporal verification reduces false alarms.
-6. Severity is calculated only after confirmed accident detection.
-7. Final output video displays accident type, severity, and priority.
+| Class |
+|---|
+| bike |
+| bike_bike_accident |
+| bike_object_accident |
+| bike_person_accident |
+| car |
+| car_bike_accident |
+| car_car_accident |
+| car_object_accident |
+| car_person_accident |
+| person |
 
 ---
 
 # Technologies Used
 
 **Deep Learning:**
-- YOLO26
-- Zero-DCE
+- YOLO26 (Ultralytics)
 
 **Programming:**
 - Python
@@ -67,79 +61,7 @@ Processed Video
 - NumPy
 
 **Hardware:**
-- NVIDIA GPU with CUDA support
-
----
-
-# YOLO26 Accident Classes
-
-| Class |
-|---|
-| bike_bike_accident |
-| bike_object_accident |
-| bike_person_accident |
-| car_bike_accident |
-| car_car_accident |
-| car_object_accident |
-| car_person_accident |
-
----
-
-# Night-Time Enhancement
-
-Zero-DCE improves illumination in low-light scenes while preserving details instead of simply increasing brightness.
-
-- Natural enhancement
-- Low-light visibility improvement
-- Integration before YOLO26 detection
-
----
-
-# Severity Prediction Module
-
-Severity is estimated using an explainable rule-based system.
-
-**Inputs:**
-- Accident class
-- Confidence score
-- Consecutive detection frames
-- Number of detected objects
-
-**Severity levels:**
-
-| Severity | Emergency Priority |
-|---|---|
-| Minor | LOW |
-| Moderate | MEDIUM |
-| Major | HIGH |
-| Critical | IMMEDIATE |
-
----
-
-# Performance Results
-
-## Night Accident Detection Comparison
-
-| Method | Accident Detections |
-|---|---:|
-| YOLO26 Only | 49 |
-| Zero-DCE + YOLO26 | 230 |
-
-## Optimization Results
-
-| Metric | Result |
-|---|---:|
-| Zero-DCE input resolution | 1786×1246 → 640×446 |
-| FPS improvement | 3.91 → 16.48 |
-| GPU memory reduction | 85.9% |
-| Zero-DCE inference reduction | 83.9% |
-
-## Final Integrated Pipeline
-
-- Severity module integrated successfully
-- Optimized severity visualization implemented
-- Final severity pipeline achieved approximately 10.74 FPS during integrated testing
-- Detection and severity outputs remained unchanged
+- NVIDIA GPU with CUDA support (optional)
 
 ---
 
@@ -149,18 +71,20 @@ Severity is estimated using an explainable rule-based system.
 AI-Smart-Accident-Detection-System/
 
 ├── inference/
-│   ├── enhanced_accident_detection.py
-│   ├── enhanced_accident_detection_severity.py
-│   ├── severity_prediction.py
-│   ├── enhancement.py
 │   └── accident_detection.py
-│
 ├── training/
-│
-├── models/
-│
+│   └── detection/
+│       └── train_yolo26.py
 ├── datasets/
-│
+│   └── accident_detection/
+│       ├── train/
+│       ├── valid/
+│       └── test/
+├── results/
+│   └── detection/
+│       └── yolo26_baseline/
+│           └── weights/
+│               └── best.pt
 ├── requirements.txt
 └── README.md
 ```
@@ -170,9 +94,67 @@ AI-Smart-Accident-Detection-System/
 # Installation
 
 ```bash
-git clone <repository-url>
-
 cd AI-Smart-Accident-Detection-System
 
 pip install -r requirements.txt
 ```
+
+---
+
+# Usage
+
+## Image Detection
+
+```bash
+python inference/accident_detection.py --source path/to/image.jpg
+```
+
+## Video Detection
+
+```bash
+python inference/accident_detection.py --source path/to/video.mp4
+```
+
+## Custom Model Path
+
+```bash
+python inference/accident_detection.py --source path/to/video.mp4 --model path/to/model.pt
+```
+
+## Custom Confidence Threshold
+
+```bash
+python inference/accident_detection.py --source path/to/video.mp4 --conf 0.7
+```
+
+## Custom Output Path
+
+```bash
+python inference/accident_detection.py --source path/to/video.mp4 --output path/to/output.mp4
+```
+
+---
+
+# Training
+
+To train the YOLO26 model:
+
+```bash
+python training/detection/train_yolo26.py
+```
+
+This will:
+- Load the dataset from `datasets/accident_detection/data.yaml`
+- Train for 100 epochs with early stopping
+- Save the best model to `results/detection/yolo26_baseline/weights/best.pt`
+
+---
+
+# Output
+
+The system generates annotated output with:
+- Bounding boxes around detected objects
+- Class names displayed above each box
+- Confidence scores for each detection
+
+Output is automatically saved to `results/detection/output/` unless a custom path is specified.
