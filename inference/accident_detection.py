@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--conf', type=float, default=0.5, help='Confidence threshold')
     parser.add_argument('--output', type=str, default=None, help='Output path (auto-generated if not specified)')
     parser.add_argument('--temporal', action='store_true', help='Enable temporal verification')
-    parser.add_argument('--confirm-frames', type=int, default=5, help='Consecutive frames required to confirm accident')
+    parser.add_argument('--confirm-frames', type=int, default=3, help='Consecutive frames required to confirm accident')
     args = parser.parse_args()
 
     # Set paths

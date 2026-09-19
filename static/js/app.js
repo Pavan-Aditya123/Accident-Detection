@@ -506,7 +506,7 @@ async function triggerAccidentAnalysis() {
 
     const btn = document.getElementById('btn-analyze');
     btn.disabled = true;
-    btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> RUNNING AI INFERENCE...`;
+    btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> ANALYZING FOOTAGE...`;
 
     state.selectedCamera.status = 'PROCESSING';
     selectCamera(state.selectedCamera.id);
@@ -523,7 +523,7 @@ async function triggerAccidentAnalysis() {
     await new Promise(r => setTimeout(r, 700));
     updateHudStep('hud-step-accident', '✓', 'text-emerald-400');
 
-    updateHudStep('hud-step-temporal', 'Verifying (3-frame)...', 'text-amber-400');
+    updateHudStep('hud-step-temporal', 'Verification in progress...', 'text-amber-400');
 
     const formData = new FormData();
     formData.append('camera_id', state.selectedCamera.id);
@@ -553,7 +553,7 @@ async function triggerAccidentAnalysis() {
     } catch (err) {
         console.error('Inference API Error:', err);
         hudCard.classList.add('hidden');
-        alert('AI Inference pipeline encountered an error: ' + err.message);
+        alert('Video analysis pipeline encountered an error: ' + err.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = `<i data-lucide="play-circle" class="w-4 h-4"></i> ANALYZE FOR ACCIDENT`;
@@ -697,7 +697,7 @@ function renderActiveIncidentCards() {
                             <h4 class="text-lg font-black tracking-tight text-rose-400 flex items-center gap-2">
                                 🔴 ACCIDENT CONFIRMED
                             </h4>
-                            <p class="text-xs text-slate-300">Verified by 3-Frame Temporal Model & Severity Classifier</p>
+                            <p class="text-xs text-slate-300">Verified by Intelligent Incident Assessment</p>
                         </div>
                     </div>
                     <span class="px-3 py-1 rounded-full text-xs font-black uppercase border ${sevColor}">
@@ -711,11 +711,11 @@ function renderActiveIncidentCards() {
                     <div class="col-span-2"><span class="text-slate-400 font-medium">Location:</span> <span class="font-medium text-slate-200 truncate">${result.location}</span></div>
                     <div class="col-span-2"><span class="text-slate-400 font-medium">Nearest Hospital:</span> <span class="font-bold text-rose-400">${hospitalText}</span></div>
                     <div><span class="text-slate-400 font-medium">Confidence:</span> <span class="font-bold text-emerald-400">${(result.average_confidence * 100).toFixed(1)}%</span></div>
-                    <div><span class="text-slate-400 font-medium">Confirmation:</span> <span class="font-mono text-slate-300">Frame ${result.confirmation_frame}</span></div>
+                    <div><span class="text-slate-400 font-medium">Verification Status:</span> <span class="font-semibold text-emerald-400">Confirmed</span></div>
                 </div>
 
                 <div class="space-y-1.5" id="accident-video-section">
-                    <span class="text-xs text-slate-300 font-bold uppercase tracking-wider block">Annotated Accident Result Video:</span>
+                    <span class="text-xs text-slate-300 font-bold uppercase tracking-wider block">Accident Analysis Video Stream:</span>
                     <div class="rounded-xl overflow-hidden border border-rose-600/40 bg-black aspect-video shadow-2xl">
                         <video src="${result.output_video}" controls autoplay muted class="w-full h-full object-contain"></video>
                     </div>
@@ -767,7 +767,7 @@ function renderActiveIncidentCards() {
                             <h4 class="text-lg font-black tracking-tight text-rose-400 flex items-center gap-2">
                                 🔴 ACCIDENT CONFIRMED
                             </h4>
-                            <p class="text-xs text-slate-300">Verified by 3-Frame Temporal Model & Severity Classifier</p>
+                            <p class="text-xs text-slate-300">Verified by Intelligent Incident Assessment</p>
                         </div>
                     </div>
                     <span class="px-3 py-1 rounded-full text-xs font-black uppercase border ${sevColor}">
@@ -785,7 +785,7 @@ function renderActiveIncidentCards() {
                 </div>
 
                 <div class="space-y-1.5" id="accident-video-section-${alertId}">
-                    <span class="text-xs text-slate-300 font-bold uppercase tracking-wider block">Annotated Accident Result Video:</span>
+                    <span class="text-xs text-slate-300 font-bold uppercase tracking-wider block">Accident Analysis Video Stream:</span>
                     <div class="rounded-xl overflow-hidden border border-rose-600/40 bg-black aspect-video shadow-2xl">
                         <video src="${result.output_video}" controls autoplay muted class="w-full h-full object-contain"></video>
                     </div>

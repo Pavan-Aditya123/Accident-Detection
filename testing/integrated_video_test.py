@@ -247,6 +247,15 @@ def _enhance_frame(frame):
     return enhanced
 
 
+def _is_night_frame(frame: np.ndarray, threshold: float = 100.0) -> bool:
+    """
+    Determine if a frame is low-light / night-time based on mean grayscale luminance.
+    Frames with mean brightness < threshold (100.0) are classified as night frames.
+    """
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    return float(np.mean(gray)) < threshold
+
+
 def _draw_night_boxes(frame, results, class_names):
     """Night Traffic boxes — always non-red."""
     if results is None or len(results.boxes) == 0:
@@ -496,12 +505,12 @@ def run(
     video_path: str,
     output_video_path: str,
     summary_path: str,
-    conf_night: float = 0.4,
+    conf_night: float = 0.55,
     conf_severity: float = 0.3,
     debug: bool = False,
 ):
-    conf_accident  = ACCIDENT_CONFIDENCE   # fixed constant
-    confirm_frames = CONFIRM_FRAMES        # fixed constant
+    conf_accident  = ACCIDENT_CONFIDENCE   # fixed constant (0.50)
+    confirm_frames = CONFIRM_FRAMES        # fixed constant (3)
     device = 0 if torch.cuda.is_available() else "cpu"
 
     # ── Validate paths ─────────────────────────────────────────────────────────
@@ -564,7 +573,7 @@ def run(
 
 
     # ── Temporal verifier ──────────────────────────────────────────────────────
-    verifier = TemporalVerifier(confirm_frames=confirm_frames)
+    verifier = TemporalVerifier(confirm_frames=confirm_frames, gap_frames=INCIDENT_GAP_FRAMES)
 
     # ── Accumulators ──────────────────────────────────────────────────────────
     frame_count          = 0
@@ -573,7 +582,6 @@ def run(
 
     # Rolling box buffer for spatial consistency check.
     # Stores the best accident box for each frame while a possible accident is building.
-    # Reset when the temporal chain resets.
     box_buffer: list = []
 
     # Night Traffic and normal-class context collected during the temporal window
@@ -606,17 +614,26 @@ def run(
 
         t_start = time.time()
 
-        # ── Step 1: Night Traffic model ────────────────────────────────────────
-        # Apply CLAHE enhancement for night-time object detection
+        # ── Step 1: Night Traffic model (Auxiliary Only) ───────────────────────
+        # Night Traffic is AUXILIARY ONLY for visualization and secondary context.
+        # It MUST NEVER control or gate whether an accident is detected.
         enhanced_frame = _enhance_frame(frame)
         night_results = night_model(
             enhanced_frame, conf=conf_night, imgsz=640, device=device, verbose=False
         )[0]
 
-        # ── Step 2: Accident Detection model ───────────────────────────────────
-        # Accident Detection receives the ORIGINAL frame (not enhanced)
+        # ── Step 2: Primary Accident Detection YOLO26n ─────────────────────────
+        # Accident Detection YOLO26n is the PRIMARY accident detector.
+        # For low-light/night frames, mild CLAHE contrast enhancement is applied to the input.
+        # Daytime frames are passed to Accident Detection un-enhanced.
+        # Original frame is strictly preserved for visualization, crops, severity inference, and output video.
+        if _is_night_frame(frame):
+            accident_input_frame = enhanced_frame
+        else:
+            accident_input_frame = frame
+
         accident_results = accident_model(
-            frame, conf=conf_accident, device=device, verbose=False
+            accident_input_frame, conf=conf_accident, device=device, verbose=False
         )[0]
 
         # Extract ONLY accident-class detections → temporal verifier
@@ -661,18 +678,18 @@ def run(
         # Maintain box buffer and context window while a possible accident builds
         _, consec_now = verifier.get_current_status()
 
-        if has_acc and consec_now > 0:
-            # Accident chain is active — accumulate
+        if has_acc and verifier.state == "ACCIDENT_CANDIDATE":
+            # Accident chain is building — accumulate window context
             box_buffer.append(frame_acc_box)
             window_night_context.update(frame_night_classes)
             window_normal_context.update(frame_normal_classes)
-        elif not has_acc:
-            # Chain broken — reset window accumulators
+        elif not has_acc and verifier.state == "NO_INCIDENT":
+            # Candidate chain broken — reset window accumulators
             box_buffer.clear()
             window_night_context.clear()
             window_normal_context.clear()
 
-        # ── Step 4: Post-temporal validation ──────────────────────────────────
+        # ── Step 4: Post-temporal validation & single confirmation execution ──
         severity_label      = None
         severity_confidence = 0.0
 
@@ -689,7 +706,7 @@ def run(
             final_validation = validation   # keep for report
 
             if validation["verified"]:
-                # ── Step 5: Severity on accident crop ─────────────────────────
+                # ── Step 5: Severity on accident crop (Runs ONCE per incident) ──
                 crop = _crop_accident_region(frame, frame_acc_box)
                 sev_results = severity_model(
                     crop, conf=conf_severity, device=device, verbose=False
@@ -724,45 +741,22 @@ def run(
                     print(f"  [DEBUG] spatial={validation['spatial_check']} | "
                           f"context={validation['object_context']}")
 
-                # ── Incident grouping ──────────────────────────────────────────
+                # ── Incident initialization ─────────────────────────────────────
                 acc_conf_val = (
                     max(c for _, c in frame_detections)
                     if frame_detections else 0.0
                 )
 
-                if current_incident is None:
-                    current_incident = {
-                        "first_frame":    frame_count,
-                        "last_frame":     frame_count,
-                        "class_votes":    [(confirmed_class, acc_conf_val)],
-                        "severity_votes": [(severity_label, severity_confidence)],
-                        "acc_confs":      [acc_conf_val],
-                        "night_context":  window_night_context.copy(),
-                        "validation":     validation,
-                    }
-                else:
-                    gap = frame_count - current_incident["last_frame"]
-                    if gap <= INCIDENT_GAP_FRAMES:
-                        current_incident["last_frame"] = frame_count
-                        current_incident["class_votes"].append(
-                            (confirmed_class, acc_conf_val))
-                        current_incident["severity_votes"].append(
-                            (severity_label, severity_confidence))
-                        current_incident["acc_confs"].append(acc_conf_val)
-                        current_incident["night_context"].update(
-                            window_night_context)
-                    else:
-                        incidents.append(current_incident)
-                        current_incident = {
-                            "first_frame":    frame_count,
-                            "last_frame":     frame_count,
-                            "class_votes":    [(confirmed_class, acc_conf_val)],
-                            "severity_votes": [(severity_label,
-                                                severity_confidence)],
-                            "acc_confs":      [acc_conf_val],
-                            "night_context":  window_night_context.copy(),
-                            "validation":     validation,
-                        }
+                start_f = verifier.current_event_start_frame if verifier.current_event_start_frame else frame_count
+                current_incident = {
+                    "first_frame":    start_f,
+                    "last_frame":     frame_count,
+                    "class_votes":    [(confirmed_class, acc_conf_val)],
+                    "severity_votes": [(severity_label, severity_confidence)],
+                    "acc_confs":      [acc_conf_val],
+                    "night_context":  window_night_context.copy(),
+                    "validation":     validation,
+                }
 
                 display_confirmed      = True
                 display_not_confirmed  = False
@@ -779,10 +773,25 @@ def run(
                 display_confirmed      = False
                 display_severity_label = None
 
-            # Reset window buffers after each confirmation attempt
+            # Clear temporal window buffers
             box_buffer.clear()
             window_night_context.clear()
             window_normal_context.clear()
+
+        # ── Aftermath frame accumulation ────────────────────────────────────────
+        elif verifier.state == "INCIDENT_ACTIVE_AFTERMATH" and current_incident is not None:
+            if has_acc and frame_detections:
+                acc_conf_val = max(c for _, c in frame_detections)
+                current_incident["last_frame"] = frame_count
+                current_incident["class_votes"].append((frame_detections[0][0], acc_conf_val))
+                current_incident["acc_confs"].append(acc_conf_val)
+
+        # ── Check for incident closure ──────────────────────────────────────────
+        if current_incident is not None and verifier.state in ("NO_INCIDENT", "INCIDENT_CLOSED"):
+            incidents.append(current_incident)
+            current_incident = None
+            latched_confirmed = False
+            latched_severity_label = None
 
         # ── Accumulate night context for active incident ────────────────────────
         if current_incident is not None and night_results is not None:
@@ -795,7 +804,11 @@ def run(
         # ── Step 6: Annotate frame ─────────────────────────────────────────────
         annotated = frame.copy()
         _draw_night_boxes(annotated, night_results, night_names)
-        _draw_accident_boxes(annotated, accident_results, accident_names)
+
+        # Only draw raw accident-class boxes during build-up and on the confirmation frame.
+        # Suppress raw accident boxes during active aftermath to avoid repeated car_car_accident labels.
+        if verifier.state != "INCIDENT_ACTIVE_AFTERMATH" or is_confirmed:
+            _draw_accident_boxes(annotated, accident_results, accident_names)
 
         _, consecutive    = verifier.get_current_status()
         current_acc_class = verifier.current_accident_class
